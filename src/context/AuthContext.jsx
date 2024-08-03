@@ -16,7 +16,10 @@ export const AuthProvider = ({ children }) => {
         })
         .catch(error => {
           console.error('Error fetching user:', error);
-          localStorage.removeItem('token');
+          if (error.response && error.response.status === 401) {
+            // Token inválido o expirado
+            localStorage.removeItem('token');
+          }
         })
         .finally(() => {
           setLoading(false);
@@ -27,9 +30,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const response = await api.post('/auth/login', { email, password });
-    localStorage.setItem('token', response.data.token);
-    setUser(response.data.user);
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      localStorage.setItem('token', response.data.token);
+      setUser(response.data.user);
+    } catch (error) {
+      console.error('Error durante el inicio de sesión:', error);
+      throw error;
+    }
   };
 
   const logout = () => {

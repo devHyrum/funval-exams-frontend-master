@@ -11,11 +11,15 @@ export const useExams = () => {
     try {
       setLoading(true);
       const response = await api.get('/exams');
-      setExams(response.data);
+      if (Array.isArray(response.data)) {
+        setExams(response.data);
+      } else {
+        throw new Error('La respuesta no es un array');
+      }
       setError(null);
     } catch (err) {
-      setError('Error al cargar los exámenes');
-      console.error(err);
+      setError('Error al cargar los exámenes: ' + err.message);
+      setExams([]);
     } finally {
       setLoading(false);
     }
@@ -23,25 +27,28 @@ export const useExams = () => {
 
   const createExam = async (examData) => {
     try {
+      console.log('Enviando datos del examen:', examData);
       const response = await api.post('/exams', examData);
+      console.log('Respuesta del servidor:', response.data);
       setExams([...exams, response.data]);
       return response.data;
     } catch (err) {
-      setError('Error al crear el examen');
-      console.error(err);
+      console.error('Error al crear el examen:', err.response ? err.response.data : err.message);
+      setError('Error al crear el examen: ' + (err.response ? err.response.data.error : err.message));
       throw err;
     }
   };
 
+
   const updateExam = async (id, examData) => {
     try {
       const response = await api.put(`/exams/${id}`, examData);
-      setExams(exams.map(exam => exam._id === id ? response.data : exam));
+      console.log('Respuesta de la API:', response.data);
+      // Actualiza el estado local si es necesario
       return response.data;
-    } catch (err) {
-      setError('Error al actualizar el examen');
-      console.error(err);
-      throw err;
+    } catch (error) {
+      console.error('Error en updateExam:', error);
+      throw error;
     }
   };
 

@@ -1,8 +1,7 @@
-// src/components/StudentSelector.jsx
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 
-const StudentSelector = ({ onSelect }) => {
+  export default function StudentSelector({ onSelect }) {
   const [students, setStudents] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
 
@@ -50,5 +49,3 @@ const StudentSelector = ({ onSelect }) => {
     </div>
   );
 };
-
-export default StudentSelector;

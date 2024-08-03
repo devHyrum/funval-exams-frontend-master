@@ -1,4 +1,3 @@
-// src/pages/TakeExam.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
@@ -6,26 +5,30 @@ import Layout from '../components/Layout';
 import ExamTimer from '../components/ExamTimer';
 import VideoRecorder from '../components/VideoRecorder';
 
-const TakeExam = () => {
+export default function TakeExam() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [exam, setExam] = useState(null);
   const [answers, setAnswers] = useState({});
   const [videoBlob, setVideoBlob] = useState(null);
   const [timeUp, setTimeUp] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
 
   useEffect(() => {
     const fetchExam = async () => {
       try {
         const response = await api.get(`/exams/${id}`);
         setExam(response.data);
-        // Inicializar las respuestas
         const initialAnswers = {};
         response.data.questions.forEach(q => initialAnswers[q._id] = '');
         setAnswers(initialAnswers);
       } catch (error) {
         console.error('Error fetching exam:', error);
-        alert('Error al cargar el examen');
+        setError('Error al cargar el examen');
+      } finally {
+        setLoading(false);
       }
     };
     fetchExam();
@@ -39,54 +42,45 @@ const TakeExam = () => {
     setVideoBlob(blob);
   };
 
-/*   const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
       const formData = new FormData();
       formData.append('answers', JSON.stringify(answers));
       if (videoBlob) {
-        formData.append('video', videoBlob, 'recording.webm');
+        formData.append('video', videoBlob, 'exam_video.webm');
       }
-      await api.post(`/students/submit-exam/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      alert('Examen enviado con éxito');
-      navigate('/dashboard'); // Redirigir al dashboard después de enviar
-    } catch (error) {
-      console.error('Error submitting exam:', error);
-      alert('Error al enviar el examen: ' + error.message);
-    }
-  }; */
+/* 
+      const response = await api.post(`/exams/${id}/submit`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }); */
 
-  const handleSubmit = async () => {
-    try {
-      const formData = new FormData();
-      formData.append('answers', JSON.stringify(answers));
-      if (videoBlob) {
-        formData.append('video', videoBlob, 'recording.webm');
-      }
-      const response = await api.post(`/students/submit-exam/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      alert(`Examen enviado con éxito. Tu calificación es: ${response.data.grade.score}`);
+      const response = await api.post(`/students/submit-exam/${id}`, { answers });
+
+      alert(`Examen enviado con éxito. Tu calificación es: ${response.data.grade.score.toFixed(2)}%`);
       navigate('/dashboard');
     } catch (error) {
       console.error('Error submitting exam:', error);
-      alert('Error al enviar el examen: ' + error.message);
+      alert('Error al enviar el examen: ' + (error.response?.data?.error || error.message));
     }
   };
 
   const handleTimeUp = () => {
     setTimeUp(true);
-    handleSubmit();
+    handleSubmit({ preventDefault: () => {} });
   };
 
-  if (!exam) return <Layout><p>Cargando examen...</p></Layout>;
+  if (loading) return <Layout><p>Cargando examen...</p></Layout>;
+  if (error) return <Layout><p>{error}</p></Layout>;
+  if (!exam) return <Layout><p>No se encontró el examen</p></Layout>;
 
   return (
     <Layout>
       <h1 className="text-2xl font-bold mb-4">{exam.title}</h1>
       {exam.timer && <ExamTimer duration={exam.timer} onTimeUp={handleTimeUp} />}
-      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {exam.questions.map((question, index) => (
           <div key={question._id} className="bg-white p-4 rounded shadow">
             <p className="font-semibold mb-2">Pregunta {index + 1}: {question.question}</p>
@@ -134,4 +128,3 @@ const TakeExam = () => {
   );
 };
 
-export default TakeExam;
